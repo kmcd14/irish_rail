@@ -16,13 +16,24 @@ def object_to_date(df, columns):
     return df
 
 
+# convert object type to time
+def object_to_time(df, columns):
+    """
+    Convert object columns to Python time objects.
+    """
+    for col in columns:
+        df[col] = pd.to_datetime(df[col], format='%H:%M:%S', errors='coerce').dt.time
+    return df
+
+
+
 # convert object type columns to string
 def object_tostring(df, columns):
     """
     Convert object type columns to string.
     """
     for col in columns:
-        df[col] = df[col].astype(str)
+        df[col] = df[col].astype('string')
     return df
 
 
@@ -76,5 +87,5 @@ def remove_linebreaks(df, columns):
     Remove line breaks from string columns.
     """
     for col in columns:
-         df[col] = df[col].str.replace(r'\s*\n\s*', ' ', regex=True).str.strip()
+         df[col] = df[col].str.replace(r'(\\n|\n)', ' ', regex=True).str.strip()
     return df
