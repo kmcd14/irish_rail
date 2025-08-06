@@ -1,7 +1,7 @@
 from scripts.fetch_api import fetch_from_api
 from scripts.parse import parse_xml_to_df
-from scripts.config import URL_CURRENT_TRAINS, FIELD_MAP_CURRENT_TRAINS
-from scripts.config import URL_TRAIN_MOVEMENTS, FIELD_MAP_TRAIN_MOVEMENTS
+from scripts.results_mapping import URL_CURRENT_TRAINS, FIELD_MAP_CURRENT_TRAINS
+from scripts.results_mapping import URL_TRAIN_MOVEMENTS, FIELD_MAP_TRAIN_MOVEMENTS
 
 
 from datetime import datetime
