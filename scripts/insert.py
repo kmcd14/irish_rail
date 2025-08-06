@@ -1,6 +1,6 @@
 # Insert data into the database
 from sqlalchemy import create_engine
-from conn import DB_CONFIG
+from scripts.conn import DB_CONFIG
 
 engine = create_engine(f"postgresql://{DB_CONFIG['USER']}:{DB_CONFIG['PASSWORD']}@{DB_CONFIG['HOST']}:{DB_CONFIG['PORT']}/{DB_CONFIG['DBNAME']}")
 
