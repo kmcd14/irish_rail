@@ -1,3 +1,4 @@
+# scripts/conn.py
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -10,6 +11,16 @@ HOST = os.getenv("DB_HOST")
 PORT = os.getenv("DB_PORT")
 DBNAME = os.getenv("DB_NAME")
 
+# conncection configuration
+DB_CONFIG = {
+    'USER': USER,
+    'PASSWORD': PASSWORD,
+    'HOST': HOST,
+    'PORT': PORT,
+    'DBNAME': DBNAME
+}
+
+# connectivity test 
 try:
     conn = psycopg2.connect(
         user=USER,
