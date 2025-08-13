@@ -18,6 +18,7 @@ URL_STATION_INFO = "http://api.irishrail.ie/realtime/realtime.asmx/getAllStation
 FIELD_MAP_STATION_INFO = {
     'StationDesc': 'StationDesc',
     'StationCode': 'StationCode',
+    'StationType': 'StationType',
     'StationId': 'StationId',
     'StationAlias': 'StationAlias',
     'StationLatitude': 'StationLatitude',
@@ -69,3 +70,4 @@ FIELD_MAP_STATION_DATA_BY_CODE_WITH_MINUTES = {
     'TrainType': 'TrainType',
     'LocationType': 'LocationType'
 }
+

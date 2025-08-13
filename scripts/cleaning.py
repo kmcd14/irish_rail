@@ -89,3 +89,12 @@ def remove_linebreaks(df, columns):
     for col in columns:
          df[col] = df[col].str.replace(r'(\\n|\n)', ' ', regex=True).str.strip()
     return df
+
+# cleaning.py (or ncleaning.py)
+
+def remove_duplicates(df, subset_columns):
+    """
+    Remove duplicate rows from the DataFrame based on the subset of columns.
+        
+    """
+    return df.drop_duplicates(subset=subset_columns)
