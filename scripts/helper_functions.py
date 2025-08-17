@@ -1,3 +1,5 @@
+# scripts/helper_functions.py 
+# Helper functions for data processing and enhancement
 import pandas as pd
 import re
 from datetime import datetime
@@ -6,7 +8,6 @@ def extract_delay_from_message(message):
     """
     Extract delay minutes from PublicMessage
     Example: "A105 08:00 - Belfast to Dublin (5 mins late)" -> 5
-    Example: "A106 09:50 - Dublin to Belfast (-3 mins late)" -> -3
     """
     if pd.isna(message) or message == "":
         return 0
@@ -83,7 +84,7 @@ def classify_route(origin, destination):
     # Non-Dublin routes
     return "Regional"
 
-def add_enhanced_fields(df):
+def add_extra_fields(df):
     """
     Add enhanced fields to any dataframe with train data
     """
@@ -91,27 +92,27 @@ def add_enhanced_fields(df):
         return df
     
     # Make a copy to not modify  original
-    enhanced_df = df.copy()
+    updated_df= df.copy()
     
     # Add delay information if it exists
-    if 'PublicMessage' in enhanced_df.columns:
-        enhanced_df['delay_minutes'] = enhanced_df['PublicMessage'].apply(extract_delay_from_message)
-        enhanced_df['current_location'] = enhanced_df['PublicMessage'].apply(extract_current_location)
+    if 'PublicMessage' in updated_df.columns:
+       updated_df['delay_minutes'] =updated_df['PublicMessage'].apply(extract_delay_from_message)
+       updated_df['current_location'] =updated_df['PublicMessage'].apply(extract_current_location)
     
     # Add train category if TrainCode exists
-    if 'TrainCode' in enhanced_df.columns:
-        enhanced_df['train_category'] = enhanced_df['TrainCode'].apply(get_train_category)
+    if 'TrainCode' in updated_df.columns:
+       updated_df['train_category'] =updated_df['TrainCode'].apply(get_train_category)
     
     # Add route classification if origin/destination exists
-    if 'TrainOrigin' in enhanced_df.columns and 'TrainDestination' in enhanced_df.columns:
-        enhanced_df['route_classification'] = enhanced_df.apply(
+    if 'TrainOrigin' in updated_df.columns and 'TrainDestination' in updated_df.columns:
+       updated_df['route_classification'] =updated_df.apply(
             lambda row: classify_route(row['TrainOrigin'], row['TrainDestination']), axis=1
         )
     
     # Add collection timestamp
-    enhanced_df['enhanced_at'] = pd.Timestamp.now()
+    updated_df['enhanced_at'] = pd.Timestamp.now()
     
-    return enhanced_df
+    return updated_df
 
 # Dictionary to store train types we discover
 DISCOVERED_TRAIN_TYPES = {}
@@ -142,15 +143,15 @@ def enrich_with_cached_train_types(df):
     if df.empty or 'TrainCode' not in df.columns:
         return df
     
-    enhanced_df = df.copy()
+    updated_df= df.copy()
     
     # Add cached train type if we don't already have it
-    if 'TrainType' not in enhanced_df.columns:
-        enhanced_df['TrainType'] = enhanced_df['TrainCode'].map(DISCOVERED_TRAIN_TYPES)
+    if 'TrainType' not in updated_df.columns:
+       updated_df['TrainType'] =updated_df['TrainCode'].map(DISCOVERED_TRAIN_TYPES)
     else:
         # Fill empty train types with cached ones
-        enhanced_df['TrainType'] = enhanced_df['TrainType'].fillna(
-            enhanced_df['TrainCode'].map(DISCOVERED_TRAIN_TYPES)
+       updated_df['TrainType'] =updated_df['TrainType'].fillna(
+           updated_df['TrainCode'].map(DISCOVERED_TRAIN_TYPES)
         )
     
-    return enhanced_df
+    return updated_df
