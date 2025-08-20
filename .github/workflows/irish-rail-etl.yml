@@ -1,0 +1,173 @@
+# .github/workflows/irish-rail-etl.yml
+name: Irish Rail ETL Pipeline
+
+on:
+  # Schedule different ETL jobs at different intervals
+  schedule:
+    # Current trains every 5 minutes during operational hours (6 AM - 11 PM)
+    - cron: '*/5 6-22 * * *'  # Every 5 minutes from 6 AM to 10:55 PM
+    # Train movements every 15 minutes during operational hours
+    - cron: '*/15 6-22 * * *'  # Every 15 minutes from 6 AM to 10:45 PM
+    # Stations update daily at 2 AM
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      etl_type:
+        description: 'ETL type to run'
+        required: true
+        default: 'trains'
+        type: choice
+        options:
+        - trains
+        - movements
+        - stations
+        - all
+
+jobs:
+  determine-etl:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run-trains: ${{ steps.schedule.outputs.should-run-trains }}
+      should-run-movements: ${{ steps.schedule.outputs.should-run-movements }}
+      should-run-stations: ${{ steps.schedule.outputs.should-run-stations }}
+    steps:
+      - name: Determine which ETL to run
+        id: schedule
+        run: |
+          current_minute=$(date +%M)
+          current_hour=$(date +%H)
+          
+          # Default to false
+          echo "should-run-trains=false" >> $GITHUB_OUTPUT
+          echo "should-run-movements=false" >> $GITHUB_OUTPUT  
+          echo "should-run-stations=false" >> $GITHUB_OUTPUT
+          
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger - use input
+            case "${{ github.event.inputs.etl_type }}" in
+              "trains") echo "should-run-trains=true" >> $GITHUB_OUTPUT ;;
+              "movements") echo "should-run-movements=true" >> $GITHUB_OUTPUT ;;
+              "stations") echo "should-run-stations=true" >> $GITHUB_OUTPUT ;;
+              "all") 
+                echo "should-run-trains=true" >> $GITHUB_OUTPUT
+                echo "should-run-movements=true" >> $GITHUB_OUTPUT
+                echo "should-run-stations=true" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          else
+            # Scheduled trigger - determine based on time
+            if [ $current_hour -eq 2 ] && [ $current_minute -eq 0 ]; then
+              echo "should-run-stations=true" >> $GITHUB_OUTPUT
+            elif [ $((current_minute % 15)) -eq 0 ]; then
+              echo "should-run-movements=true" >> $GITHUB_OUTPUT
+            elif [ $((current_minute % 5)) -eq 0 ]; then
+              echo "should-run-trains=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  run-trains-etl:
+    needs: determine-etl
+    if: needs.determine-etl.outputs.should-run-trains == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Current Trains ETL
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python single_etl_run.py trains
+
+  run-movements-etl:
+    needs: determine-etl
+    if: needs.determine-etl.outputs.should-run-movements == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Train Movements ETL
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python single_etl_run.py movements
+
+  run-stations-etl:
+    needs: determine-etl
+    if: needs.determine-etl.outputs.should-run-stations == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Stations ETL
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python single_etl_run.py stations
