@@ -3,7 +3,11 @@ import os
 import sys
 import logging
 from datetime import datetime
-from .pipeline import *
+from scripts.pipeline import (
+    run_current_trains_etl,
+    run_train_movements_etl,
+    run_stations_etl,
+)
 
 # Logging setup
 logging.basicConfig(
