@@ -1,4 +1,4 @@
-# schedule.py - Single run version for GitHub Actions/cron
+# scripts\schedule.py - Single run version for GitHub Actions/cron
 import os
 import sys
 import logging

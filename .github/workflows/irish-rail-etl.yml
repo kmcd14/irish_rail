@@ -100,7 +100,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_NAME: ${{ secrets.DB_NAME }}
-        run: python schedule.py trains
+        run: python scripts\schedule.py trains
 
   run-movements-etl:
     needs: determine-etl
@@ -135,7 +135,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_NAME: ${{ secrets.DB_NAME }}
-        run: python schedule.py movements
+        run: python scripts\schedule.py movements
 
   run-stations-etl:
     needs: determine-etl
@@ -170,4 +170,4 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_NAME: ${{ secrets.DB_NAME }}
-        run: python schedule.py stations
+        run: python scripts\schedule.py stations
