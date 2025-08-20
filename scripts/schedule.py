@@ -1,4 +1,4 @@
-# single_etl_run.py - Single run version for GitHub Actions/cron
+# schedule.py - Single run version for GitHub Actions/cron
 import os
 import sys
 import logging
@@ -59,7 +59,7 @@ def run_specific_etl():
             run_etl_with_logging(run_stations_etl, "Stations")
         else:
             logging.error(f"Unknown ETL type: {etl_type}")
-            logging.info("Usage: python single_etl_run.py [trains|movements|stations|all]")
+            logging.info("Usage: python schedule.py [trains|movements|stations|all]")
             sys.exit(1)
     else:
         # No argument provided - run based on schedule
