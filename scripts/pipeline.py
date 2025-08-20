@@ -213,3 +213,21 @@ def load_train_movements(df):
         logger.info(f"Loaded {len(df)} train movements to database")
     except Exception as e:
         logger.error(f"Failed to load train movements: {e}")
+
+
+def run_stations_etl():
+    df = extract_stations()
+    df = transform_stations(df)
+    load_stations(df)
+
+
+def run_current_trains_etl():
+    df = extract_current_trains()
+    df = transform_current_trains(df)
+    load_current_trains(df)
+
+
+def run_train_movements_etl():
+    df = extract_train_movements()
+    df = transform_train_movements(df)
+    load_train_movements(df)

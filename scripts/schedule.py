@@ -1,4 +1,4 @@
-# single_etl_run.py - Single run version for GitHub Actions/cron
+# schedule.py - Single run version for GitHub Actions/cron
 import os
 import sys
 import logging
