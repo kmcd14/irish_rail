@@ -3,7 +3,7 @@ name: Current Trains ETL
 
 on:
   schedule:
-    - cron: '*/5 6-23 * * *'  # Every 5 minutes from 6 AM to 10:55 PM
+    - cron: '*/5 6-23 * * *'  # Every 5 minutes from 6 AM to 23:55 PM
   workflow_dispatch:
 
 jobs:

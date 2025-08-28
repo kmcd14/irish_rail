@@ -3,7 +3,7 @@ name: Train Movements ETL
 
 on:
   schedule:
-    - cron: '*/15 6-23 * * *'  # Every 15 minutes from 6 AM to 10:45 PM
+    - cron: '*/15 6-23 * * *'  # Every 15 minutes from 6 AM to 23:55 PM
   workflow_dispatch:
 
 jobs:
