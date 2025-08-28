@@ -56,7 +56,7 @@ def insert_data(df, table_name):
             _upsert_train_movements(df)
             
         else:
-            # For other tables, use simple append
+            # For other tables append
             df.to_sql(table_name, con=engine, index=False, if_exists='append')
             print(f"Data inserted into {table_name} successfully.")
 
@@ -67,20 +67,22 @@ def insert_data(df, table_name):
 def _upsert_train_movements(df):
     """
     UPSERT train movements to preserve historical data while handling duplicates.
-    This updates existing records and inserts new ones.
     """
     if df.empty:
         return
         
     try:
         with engine.connect() as conn:
-            # Create a temporary table with the new data
-            temp_table = f"temp_train_movements_{int(datetime.now().timestamp())}"
+            # Use a simpler temp table name
+            temp_table = "temp_train_movements_upsert"
+            
+            # Drop temp table if it exists (cleanup from previous failed runs)
+            conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
             
             # Insert new data into temporary table
             df.to_sql(temp_table, con=conn, index=False, if_exists='replace', method='multi')
             
-            # Get column names for the UPDATE SET clause (excluding primary key columns)
+            # Get column names for UPDATE SET clause
             columns = df.columns.tolist()
             primary_key_cols = ['TrainCode', 'TrainDate', 'LocationOrder']
             update_cols = [col for col in columns if col not in primary_key_cols]
@@ -88,7 +90,7 @@ def _upsert_train_movements(df):
             # Build SET clause for UPDATE
             set_clause = ', '.join([f'"{col}" = EXCLUDED."{col}"' for col in update_cols])
             
-            # Perform UPSERT (INSERT ... ON CONFLICT DO UPDATE)
+            # Perform UPSERT
             upsert_query = text(f'''
                 INSERT INTO train_movements 
                 SELECT * FROM {temp_table}
@@ -97,54 +99,62 @@ def _upsert_train_movements(df):
                     {set_clause}
             ''')
             
-            result = conn.execute(upsert_query)
+            conn.execute(upsert_query)
             
             # Clean up temporary table
-            conn.execute(text(f'DROP TABLE {temp_table}'))
+            conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
             conn.commit()
             
             print(f"Successfully upserted {len(df)} train movement records")
             
     except Exception as e:
         print(f"Failed to upsert train movements: {e}")
+        # Ensure cleanup even if upsert fails
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
+                conn.commit()
+        except:
+            pass
         raise
 
+
 # Alternative approach: Only insert truly new records
-def _insert_only_new_movements(df):
-    """
-    Insert only records that don't already exist in the database.
-    This preserves all historical data without updates.
-    """
-    if df.empty:
-        return
-        
-    try:
-        with engine.connect() as conn:
-            # Create temporary table
-            temp_table = f"temp_new_movements_{int(datetime.now().timestamp())}"
-            df.to_sql(temp_table, con=conn, index=False, if_exists='replace', method='multi')
-            
-            # Insert only records that don't exist
-            insert_query = text(f'''
-                INSERT INTO train_movements 
-                SELECT t.* FROM {temp_table} t
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM train_movements tm 
-                    WHERE tm."TrainCode" = t."TrainCode" 
-                    AND tm."TrainDate" = t."TrainDate" 
-                    AND tm."LocationOrder" = t."LocationOrder"
-                )
-            ''')
-            
-            result = conn.execute(insert_query)
-            inserted_count = result.rowcount
-            
-            # Clean up
-            conn.execute(text(f'DROP TABLE {temp_table}'))
-            conn.commit()
-            
-            print(f"Inserted {inserted_count} new train movement records (skipped duplicates)")
-            
-    except Exception as e:
-        print(f"Failed to insert new movements: {e}")
-        raise
+#def _insert_only_new_movements(df):
+#    """
+#    Insert only records that don't already exist in the database.
+#    This preserves all historical data without updates.
+#    """
+#    if df.empty:
+#        return
+#        
+#    try:
+#        with engine.connect() as conn:
+#            # Create temporary table
+#            temp_table = f"temp_new_movements_{int(datetime.now().timestamp())}"
+#            df.to_sql(temp_table, con=conn, index=False, if_exists='replace', method='multi')
+#            
+#            # Insert only records that don't exist
+#            insert_query = text(f'''
+#                INSERT INTO train_movements 
+#                SELECT t.* FROM {temp_table} t
+#                WHERE NOT EXISTS (
+#                    SELECT 1 FROM train_movements tm 
+#                    WHERE tm."TrainCode" = t."TrainCode" 
+#                    AND tm."TrainDate" = t."TrainDate" 
+#                    AND tm."LocationOrder" = t."LocationOrder"
+#                )
+#            ''')
+#            
+#            result = conn.execute(insert_query)
+#            inserted_count = result.rowcount
+#            
+#            # Clean up
+#            conn.execute(text(f'DROP TABLE {temp_table}'))
+#            conn.commit()
+#            
+#            print(f"Inserted {inserted_count} new train movement records (skipped duplicates)")
+#            
+#    except Exception as e:
+#        print(f"Failed to insert new movements: {e}")
+#        raise
