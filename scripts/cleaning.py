@@ -13,6 +13,7 @@ def object_to_date(df, columns):
     """
     for col in columns:
         df[col] = pd.to_datetime(df[col], errors='coerce')
+        df[col] = df[col].where(df[col].notna(), None)
     return df
 
 
@@ -23,6 +24,7 @@ def object_to_time(df, columns):
     """
     for col in columns:
         df[col] = pd.to_datetime(df[col], format='%H:%M:%S', errors='coerce').dt.time
+        df[col] = df[col].where(df[col].notna(), None)
     return df
 
 
