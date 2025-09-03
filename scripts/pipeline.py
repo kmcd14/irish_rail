@@ -162,7 +162,7 @@ def transform_train_movements(df):
     df = object_tostring(df, ['TrainCode', 'LocationCode', 'LocationFullName','TrainOrigin', 'TrainDestination', 'StopType'])
     df = remove_whitespace(df, ['TrainCode', 'LocationCode', 'LocationFullName','TrainOrigin', 'TrainDestination', 'StopType'])
     df = object_to_date(df, ['TrainDate'])
-    df = object_to_time(df, ['ScheduledArrival', 'ScheduledDeparture','arrival_actual', 'departure_actual', 'fetched_at', 'enchanced_at'])
+    df = object_to_time(df, ['ScheduledArrival', 'ScheduledDeparture','arrival_actual', 'departure_actual', 'fetched_at'])
     df = object_to_integer(df, ['LocationOrder', 'delay_minutes'])
     
     # Add extra columns
