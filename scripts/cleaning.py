@@ -127,4 +127,4 @@ def clean_nat(df):
     """
     Replace any NaT/NaN values with None (safe for SQL inserts).
     """
-    return df.where(pd.notnull(df), None)
+    return df.astype(object).where(pd.notnull(df), None)
