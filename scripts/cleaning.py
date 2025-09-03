@@ -120,3 +120,11 @@ def remove_duplicates(df, subset_columns):
         
     """
     return df.drop_duplicates(subset=subset_columns)
+
+
+# replace NaT/NaN with None
+def clean_nat(df):
+    """
+    Replace any NaT/NaN values with None (safe for SQL inserts).
+    """
+    return df.where(pd.notnull(df), None)

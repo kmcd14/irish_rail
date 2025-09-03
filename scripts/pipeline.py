@@ -166,6 +166,9 @@ def transform_train_movements(df):
     df = object_to_datetime(df, ['arrival_actual','departure_actual','fetched_at','enhanced_at'])
     df = object_to_integer(df, ['LocationOrder', 'delay_minutes'])
     
+    # remove string "NaT" and "NaN" values
+    df = clean_nat(df)
+
     # Add extra columns
     df = add_extra_fields(df)
     df = add_train_types(df)
