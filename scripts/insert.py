@@ -76,7 +76,7 @@ def _upsert_train_movements(df):
             # Use a simpler temp table name
             temp_table = "temp_train_movements_upsert"
             
-            # Drop temp table if it exists (cleanup from previous failed runs)
+            # Drop temp table if it exists 
             conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
             
             # Insert new data into temporary table
@@ -119,7 +119,7 @@ def _upsert_train_movements(df):
         raise
 
 
-# Alternative approach: Only insert truly new records
+# Only insert truly new records
 #def _insert_only_new_movements(df):
 #    """
 #    Insert only records that don't already exist in the database.

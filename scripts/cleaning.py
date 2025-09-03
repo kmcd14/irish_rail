@@ -43,9 +43,20 @@ def object_to_float(df, columns):
     Convert object type columns to float.
     """
     for col in columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = pd.to_numeric(df[col], downcast='float', errors='coerce')
     return df
     
+
+
+# convert object type columns to integer
+def object_to_integer(df, columns):
+    """
+    Convert object type columns to integer.
+    """
+    for col in columns:
+        df[col] = pd.to_numeric(df[col], downcast='integer', errors='coerce')
+    return df
+
 
 # timestamp of fetch
 def fetch_timestamp():
