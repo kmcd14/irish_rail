@@ -19,6 +19,7 @@
 from sqlalchemy import create_engine, text
 from datetime import datetime
 from scripts.conn import DB_CONFIG
+import pandas as pd
 
 engine = create_engine(f"postgresql://{DB_CONFIG['USER']}:{DB_CONFIG['PASSWORD']}@{DB_CONFIG['HOST']}:{DB_CONFIG['PORT']}/{DB_CONFIG['DBNAME']}")
 
@@ -66,56 +67,50 @@ def insert_data(df, table_name):
 
 def _upsert_train_movements(df):
     """
-    UPSERT train movements to preserve historical data while handling duplicates.
+    Alternative UPSERT using individual record processing.
+    Slower but more reliable for data type issues.
     """
     if df.empty:
         return
         
     try:
         with engine.connect() as conn:
-            # Use a simpler temp table name
-            temp_table = "temp_train_movements_upsert"
+            upserted_count = 0
             
-            # Drop temp table if it exists 
-            conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
+            for _, row in df.iterrows():
+                # Convert row to dict and handle data types
+                record = row.to_dict()
+                
+                # Ensure proper types
+                if 'LocationOrder' in record:
+                    record['LocationOrder'] = int(float(record['LocationOrder'])) if pd.notna(record['LocationOrder']) else 1
+                if 'delay_minutes' in record:
+                    record['delay_minutes'] = int(float(record['delay_minutes'])) if pd.notna(record['delay_minutes']) else None
+                
+                # Build column lists
+                columns = list(record.keys())
+                placeholders = [f':{col}' for col in columns]
+                
+                primary_key_cols = ['TrainCode', 'TrainDate', 'LocationOrder']
+                update_cols = [col for col in columns if col not in primary_key_cols]
+                set_clause = ', '.join([f'"{col}" = EXCLUDED."{col}"' for col in update_cols])
+                
+                # Individual UPSERT query
+                query = text(f'''
+                    INSERT INTO train_movements ({', '.join([f'"{col}"' for col in columns])})
+                    VALUES ({', '.join(placeholders)})
+                    ON CONFLICT ("TrainCode", "TrainDate", "LocationOrder")
+                    DO UPDATE SET {set_clause}
+                ''')
+                
+                conn.execute(query, record)
+                upserted_count += 1
             
-            # Insert new data into temporary table
-            df.to_sql(temp_table, con=conn, index=False, if_exists='replace', method='multi')
-            
-            # Get column names for UPDATE SET clause
-            columns = df.columns.tolist()
-            primary_key_cols = ['TrainCode', 'TrainDate', 'LocationOrder']
-            update_cols = [col for col in columns if col not in primary_key_cols]
-            
-            # Build SET clause for UPDATE
-            set_clause = ', '.join([f'"{col}" = EXCLUDED."{col}"' for col in update_cols])
-            
-            # Perform UPSERT
-            upsert_query = text(f'''
-                INSERT INTO train_movements 
-                SELECT * FROM {temp_table}
-                ON CONFLICT ("TrainCode", "TrainDate", "LocationOrder") 
-                DO UPDATE SET 
-                    {set_clause}
-            ''')
-            
-            conn.execute(upsert_query)
-            
-            # Clean up temporary table
-            conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
             conn.commit()
-            
-            print(f"Successfully upserted {len(df)} train movement records")
+            print(f"Successfully upserted {upserted_count} train movement records")
             
     except Exception as e:
         print(f"Failed to upsert train movements: {e}")
-        # Ensure cleanup even if upsert fails
-        try:
-            with engine.connect() as conn:
-                conn.execute(text(f'DROP TABLE IF EXISTS {temp_table}'))
-                conn.commit()
-        except:
-            pass
         raise
 
 
