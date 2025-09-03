@@ -28,6 +28,15 @@ def object_to_time(df, columns):
     return df
 
 
+# convert object type to full datetime (timestamp)
+def object_to_datetime(df, columns):
+    """
+    Convert object columns to Python datetime objects.
+    """
+    for col in columns:
+        df[col] = pd.to_datetime(df[col], errors='coerce')
+        df[col] = df[col].where(df[col].notna(), None)
+    return df
 
 # convert object type columns to string
 def object_tostring(df, columns):
