@@ -262,7 +262,7 @@ with col_info:
     st.metric("Live Trains", len(trains_df))
     st.markdown("""
     **Legend**  
-    🟢 ≤5 min | 🟠 6–15 min | 🔴 >15 min
+    🟢 ≤5 min | 🟠 6-15 min | 🔴 >15 min
     """)
 
 # ----------------------
@@ -361,3 +361,36 @@ else:
 # Footer
 # ----------------------
 st.markdown(f"---\n*Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+
+# ----------------------
+# Data Limitations
+# ----------------------
+with st.expander("⚠️ Data Limitations"):
+    st.markdown("""
+    Irish Rail realtime data comes with several important caveats:
+
+    1. **Estimates, not guarantees** - Train times are based on current location and schedule.  
+       Trains marked as late may recover time and arrive on schedule.  
+
+    2. **Weaker coverage** - Real-time data is incomplete on some routes. In these cases, only scheduled times are shown:  
+       - Athlone - Westport/Ballina  
+       - Cork Station  
+       - Cork - Cobh/Midleton  
+       - Mallow - Tralee  
+       - Ballybrophy - Limerick  
+       - Limerick - Ennis  
+       - Limerick Junction - Waterford  
+       - Greystones - Rosslare  
+       - Dundalk - Belfast  
+
+    3. **Near-term only** - The API only returns:  
+       - Trains currently running or due to start within 10 minutes  
+       - Station queries for the next **5-90 minutes** only  
+
+    4. **Incomplete data in some cases** -  
+       - Expected times may show `00:00` for origin/terminating stations  
+       - Movements may be missing in weaker coverage areas  
+
+    5. **Provided as-is** - Irish Rail does not guarantee accuracy, uptime, or offer user support for this feed.  
+    """)
+
