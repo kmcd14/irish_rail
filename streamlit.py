@@ -70,13 +70,6 @@ div[data-testid="metric-container"] * {
     background-color: #f2f2f2;
     color: #000 !important;
 }
-
-/* Folium Map iframe fix: prevent black box */
-div.st-folium iframe {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -189,6 +182,7 @@ tz = pytz.timezone("Europe/Dublin")
 
 if not kpi_df.empty:
     kpis = kpi_df.iloc[0]
+    
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("On-Time %", f"{kpis['on_time_pct']:.1f}%")
     col2.metric("Avg Delay", f"{kpis['avg_delay']:.1f} min")
@@ -199,52 +193,26 @@ if not kpi_df.empty:
     col5.metric("Severely Delayed", f"{kpis['severely_delayed']:,}")
     col6.metric("Avg Delay (Delayed Only)", f"{kpis['avg_delay_when_delayed'] or 0:.1f} min")
 
-    if kpis['last_update']:
-        db_update_utc = pd.to_datetime(kpis['last_update']).tz_localize("UTC")
-        db_update_local = db_update_utc.tz_convert(tz)
-        col7.metric("Last Update (UTC)", db_update_utc.strftime('%H:%M'))
-        col8.metric("Last Update (GMT)", db_update_local.strftime('%H:%M'))
+    if pd.notna(kpis['last_update']) and kpis['last_update'] is not None:
+        try:
+            timestamp = pd.to_datetime(kpis['last_update'])
+            if timestamp.tz is None:
+                utc_time = timestamp.strftime('%H:%M')
+                local_time = timestamp.tz_localize('UTC').tz_convert(tz).strftime('%H:%M')
+            else:
+                utc_time = timestamp.tz_convert('UTC').strftime('%H:%M')
+                local_time = timestamp.tz_convert(tz).strftime('%H:%M')
+            
+            col7.metric("Last Update (UTC)", utc_time)
+            col8.metric("Last Update (Local)", local_time)
+        except:
+            col7.metric("Last Update (UTC)", "N/A")
+            col8.metric("Last Update (Local)", "N/A")
     else:
         col7.metric("Last Update (UTC)", "N/A")
-        col8.metric("Last Update (GMT", "N/A")
+        col8.metric("Last Update (Local)", "N/A")
 else:
     st.warning("No KPI data available.")
-
-# ----------------------
-# Live Map
-# ----------------------
-st.subheader("📍 Live Train Positions")
-col_map, col_info = st.columns([3, 1])
-stations_df, trains_df = get_stations(), get_live_trains()
-
-with col_map:
-    m = folium.Map(location=[53.35, -6.26], zoom_start=7, tiles="CartoDB positron")
-
-    for _, s in stations_df.iterrows():
-        folium.CircleMarker(
-            [s['StationLatitude'], s['StationLongitude']],
-            radius=6, popup=s['StationDesc'],
-            color="#2E86C1", fillColor="#2E86C1", fillOpacity=0.6
-        ).add_to(m)
-
-    for _, t in trains_df.iterrows():
-        delay = t.get('delay_minutes', 0) or 0
-        color = 'green' if delay <= 5 else 'orange' if delay <= 15 else 'red'
-        folium.Marker(
-            [t['TrainLatitude'], t['TrainLongitude']],
-            popup=f"<b>{t['TrainCode']}</b><br>{t.get('TrainOrigin','?')} → {t.get('TrainDestination','?')}<br>Delay: {delay} min",
-            icon=folium.Icon(color=color, icon="train", prefix="fa")
-        ).add_to(m)
-
-    st_folium(m, height=600, width="100%", returned_objects=[])
-
-with col_info:
-    st.metric("Stations", len(stations_df))
-    st.metric("Live Trains", len(trains_df))
-    st.markdown("""
-    **Legend**  
-    🟢 ≤5 min | 🟠 6–15 min | 🔴 >15 min
-    """)
 
 # ----------------------
 # Delay Distribution
@@ -265,6 +233,12 @@ if not dist.empty:
             "Severe Delay":"#dc3545"
         },
         template="plotly_white"
+    )
+    fig.update_layout(
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font_color='black',
+        legend=dict(font=dict(color='black'))
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -290,10 +264,7 @@ if not trains_df.empty:
         'TrainStatus':'Status','delay_minutes':'Delay (min)','train_type':'Type'
     })
 
-    color_map = {
-        'On Time': '#28a745','Minor Delay': '#ffc107',
-        'Major Delay': '#fd7e14','Severe Delay': '#dc3545'
-    }
+    color_map = {'On Time': '#28a745','Minor Delay': '#ffc107','Major Delay': '#fd7e14','Severe Delay': '#dc3545'}
     def color_punctuality(val): return f'color: {color_map.get(val, "#333")}'
 
     st.dataframe(
@@ -303,6 +274,42 @@ if not trains_df.empty:
     )
 else:
     st.info("No live train data available.")
+
+# ----------------------
+# Live Map
+# ----------------------
+st.subheader("📍 Live Train Positions")
+stations_df, trains_df = get_stations(), get_live_trains()
+col_map, col_info = st.columns([3, 1])
+
+with col_info:
+    st.metric("Stations", len(stations_df))
+    st.metric("Live Trains", len(trains_df))
+    st.markdown("""
+    **Legend**  
+    🟢 ≤5 min | 🟠 6–15 min | 🔴 >15 min
+    """)
+
+with col_map:
+    m = folium.Map(location=[53.35, -6.26], zoom_start=7, tiles="CartoDB positron")
+
+    for _, s in stations_df.iterrows():
+        folium.CircleMarker(
+            [s['StationLatitude'], s['StationLongitude']],
+            radius=6, popup=s['StationDesc'],
+            color="#2E86C1", fillColor="#2E86C1", fillOpacity=0.6
+        ).add_to(m)
+
+    for _, t in trains_df.iterrows():
+        delay = t.get('delay_minutes', 0) or 0
+        color = 'green' if delay <= 5 else 'orange' if delay <= 15 else 'red'
+        folium.Marker(
+            [t['TrainLatitude'], t['TrainLongitude']],
+            popup=f"<b>{t['TrainCode']}</b><br>{t.get('TrainOrigin','?')} → {t.get('TrainDestination','?')}<br>Delay: {delay} min",
+            icon=folium.Icon(color=color, icon="train", prefix="fa")
+        ).add_to(m)
+
+    st_folium(m, height=600, width="100%", returned_objects=[])
 
 # ----------------------
 # Footer
